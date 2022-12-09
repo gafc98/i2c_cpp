@@ -71,8 +71,8 @@ public:
 	float read_voltage()
 	{
 		// sudo i2ctransfer -y 0 w1@0x48 0 r2 -> reads two bytes from board address at offset zero
-		_cmd = "sudo i2ctransfer -y " + _i2c_bus + " w1@" + _board_address + " 0 r2";
-		string _bytes = execute_cmd(_cmd);
+		static string read_cmd = "sudo i2ctransfer -y " + _i2c_bus + " w1@" + _board_address + " 0 r2";
+		string _bytes = execute_cmd(read_cmd);
 		return str_to_int16(_bytes) * _conversion_factor;
 	}
 	
