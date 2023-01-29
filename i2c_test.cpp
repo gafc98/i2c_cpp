@@ -52,7 +52,7 @@ public:
 	{
 		if (read(_file, _buffer, 2) != 2)
 			throw std::runtime_error("Something went wrong when trying to read from device.");
-		return _conversion_factor * static_cast<__s16>(static_cast<__u8>(_buffer[0]) << 8 | static_cast<__u8>(_buffer[1]));
+		return _conversion_factor * static_cast<__s16>(_buffer[0] << 8 | _buffer[1]);
 	}
 
 	~ADS1115()
