@@ -7,23 +7,56 @@ extern "C"
 	#include <linux/i2c-dev.h>
 }
 
+
+class I2C_BUS
+{
+public:
+	I2C_BUS(__u16 i2c_bus = 0)
+	{
+		char filename[20];
+		snprintf(filename, 19, "/dev/i2c-%d", i2c_bus);
+		file = open(filename, O_RDWR);
+
+		if (file < 0)
+			throw std::runtime_error("Error opening the i2c devide. Does the device exist? Run as Sudo?\n");
+	}
+	
+	void set_device_address(__u16 new_device_address)
+	{
+		if (_device_address == new_device_address && _first_address_was_set)
+			return; // first device has been set and new device is the same as the last one, no need to change devices.
+		
+		_device_address = new_device_address;
+		
+		if (ioctl(file, I2C_SLAVE, _device_address) < 0)
+			throw std::runtime_error("Error setting board address.\n");
+		
+		if (!_first_address_was_set)
+			_first_address_was_set = true;
+	}
+	
+	~I2C_BUS()
+	{
+		close(file);
+	}
+	
+	int file;
+	
+private:
+	__u16 _device_address;
+	bool _first_address_was_set = false;
+};
+
+
 const float FULL_SCALES[] = {6.144, 4.096, 2.048, 1.024, 0.512, 0.256};
 
 class ADS1115
 {
 public:
-	ADS1115(__u16 i2c_bus = 0, __u16 board_address = 0x48)
+	ADS1115(I2C_BUS* i2c_bus, __u16 device_address = 0x48)
 	{
-		char filename[20];
-		snprintf(filename, 19, "/dev/i2c-%d", i2c_bus);
-		_file = open(filename, O_RDWR);
-
-		if (_file < 0)
-			throw std::runtime_error("Error opening the i2c devide. Does the device exist? Run as Sudo?\n");
-
-		if (ioctl(_file, I2C_SLAVE, board_address) < 0)
-			throw std::runtime_error("Error calling ioctl.\n");
-
+		_i2c_bus = i2c_bus;
+		_device_address = device_address;
 		set_config(0);
 	}
 
@@ -40,35 +73,36 @@ public:
 		_buffer[0] = 1;
 		_buffer[1] = 0b00010000 * analog_input + 0b00000010 * fs_mode + 0b11000000;
 		_buffer[2] = 0x83;
-		if (write(_file, _buffer, 3) != 3)
+		
+		// writing to device
+		_i2c_bus->set_device_address(_device_address);
+		if (write(_i2c_bus->file, _buffer, 3) != 3)
 			throw std::runtime_error("Something went wrong when trying to write to device.");
-
 		_buffer[0] = 0;
-		if (write(_file, _buffer, 1) != 1)
+		if (write(_i2c_bus->file, _buffer, 1) != 1)
 			throw std::runtime_error("Something went wrong when trying to write to device.");
 	}
 
 	float read_voltage()
 	{
-		if (read(_file, _buffer, 2) != 2)
+		_i2c_bus->set_device_address(_device_address);
+		if (read(_i2c_bus->file, _buffer, 2) != 2)
 			throw std::runtime_error("Something went wrong when trying to read from device.");
 		return _conversion_factor * static_cast<__s16>(_buffer[0] << 8 | _buffer[1]);
 	}
 
-	~ADS1115()
-	{
-		close(_file);
-	}
-
 private:
 	float _conversion_factor;
-	int _file;
+	__u16 _device_address;
+	I2C_BUS* _i2c_bus;
 	__u8 _buffer[3];
 };
 
+
 int main()
 {
-	ADS1115 adc = ADS1115(0, 0x48);
+	I2C_BUS i2c_bus = I2C_BUS(0);
+	ADS1115 adc = ADS1115(&i2c_bus, 0x48);
 	adc.set_config(1);
 	while (true)
 	{
