@@ -34,6 +34,18 @@ public:
 		if (!_first_address_was_set)
 			_first_address_was_set = true;
 	}
+
+	void write_to_device(__u8* buffer, __u8 num_bytes)
+	{
+		if (write(file, buffer, num_bytes) != num_bytes)
+			throw std::runtime_error("Something went wrong when trying to write to device.");
+	}
+
+	void read_from_device(__u8* buffer, __u8 num_bytes)
+	{
+		if (read(file, buffer, num_bytes) != num_bytes)
+			throw std::runtime_error("Something went wrong when trying to read from device.");
+	}
 	
 	~I2C_BUS()
 	{
@@ -76,18 +88,15 @@ public:
 		
 		// writing to device
 		_i2c_bus->set_device_address(_device_address);
-		if (write(_i2c_bus->file, _buffer, 3) != 3)
-			throw std::runtime_error("Something went wrong when trying to write to device.");
+		_i2c_bus->write_to_device(_buffer, 3);
 		_buffer[0] = 0;
-		if (write(_i2c_bus->file, _buffer, 1) != 1)
-			throw std::runtime_error("Something went wrong when trying to write to device.");
+		_i2c_bus->write_to_device(_buffer, 1);
 	}
 
 	float read_voltage()
 	{
 		_i2c_bus->set_device_address(_device_address);
-		if (read(_i2c_bus->file, _buffer, 2) != 2)
-			throw std::runtime_error("Something went wrong when trying to read from device.");
+		_i2c_bus->read_from_device(_buffer, 2);
 		return _conversion_factor * static_cast<__s16>(_buffer[0] << 8 | _buffer[1]);
 	}
 
