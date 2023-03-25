@@ -18,7 +18,7 @@ public:
 		file = open(filename, O_RDWR);
 
 		if (file < 0)
-			throw std::runtime_error("Error opening the i2c devide. Does the device exist? Run as Sudo?\n");
+			throw std::runtime_error("Error opening the i2c device. Does the device exist? Run as Sudo?\n");
 	}
 	
 	void set_device_address(__u16 new_device_address)
