@@ -6,8 +6,10 @@ extern "C"
 {
 	#include <linux/i2c-dev.h>
 }
+// had to add these to print time stamp
 #include <ctime>
-#include <chrono> 
+#include <chrono>
+#include <string.h>
 
 
 class I2C_BUS
@@ -121,7 +123,7 @@ int main()
 		float T = -66.875 + 218.75 * adc.read_voltage() / 3.3;
 		//std::cout << "Temp = " << T << " ºC" << std::endl;
 		auto timenow = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()); 
-    	std::cout << ctime(&timenow) << "\t|\t" << T << " ºC" << std::endl; 
+    	std::cout << strtok(ctime(&timenow), "\n") << "\t|\t" << T << " ºC" << std::endl; 
 	}
 	return 0;
 }
